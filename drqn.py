@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
+
 import skimage as skimage
 from skimage import transform, color, exposure
 from skimage.viewer import ImageViewer
@@ -8,6 +9,7 @@ from random import choice
 import numpy as np
 from collections import deque
 import time
+
 import json
 from keras.models import model_from_json
 from keras.models import Sequential, load_model, Model
@@ -17,11 +19,13 @@ from keras.layers import Convolution2D, Dense, Flatten, merge, MaxPooling2D, Inp
 from keras.layers.recurrent import LSTM, GRU
 from keras.optimizers import SGD, Adam, rmsprop
 from keras import backend as K
+
 from vizdoom import DoomGame, ScreenResolution
 from vizdoom import *
 import itertools as it
 from time import sleep
 import tensorflow as tf
+
 from networks import Networks
 
 
@@ -53,7 +57,6 @@ class ReplayMemory():
             point = np.random.randint(0, len(episode)+1-trace_length)
             sampledTraces.append(episode[point:point+trace_length])
         sampledTraces = np.array(sampledTraces)
-
         return sampledTraces
 
 class DoubleDQNAgent:
@@ -116,7 +119,6 @@ class DoubleDQNAgent:
         return action_idx
 
     def shape_reward(self, r_t, misc, prev_misc, t):
-        
         # Check any kill count
         if (misc[0] > prev_misc[0]):
             r_t = r_t + 1
@@ -124,27 +126,21 @@ class DoubleDQNAgent:
         if (misc[1] < prev_misc[1]): # Use ammo
             r_t = r_t - 0.1
 
-        # if (misc[1] < prev_misc[1]): # Use ammo
-        #     r_t = r_t - 0.1
-
         if (misc[2] < prev_misc[2]): # Loss HEALTH
             r_t = r_t - 0.1
-
-        if (misc[2] > prev_misc[2]): # get HEALTH pack
-            r_t = r_t + 1
 
         return r_t
 
     # pick samples randomly from replay memory (with batch_size)
     def train_replay(self):
 
-        sample_traces = self.memory.sample(self.batch_size, self.trace_length) # 32x4x4
+        sample_traces = self.memory.sample(self.batch_size, self.trace_length) # 32x8x4
 
         # Shape (batch_size, trace_length, img_rows, img_cols, color_channels)
-        update_input = np.zeros(((self.batch_size,) + self.state_size)) # 32x4x64x64x3
-        update_target = np.zeros(((self.batch_size,) + self.state_size)) # 32x4x64x64x3
+        update_input = np.zeros(((self.batch_size,) + self.state_size)) # 32x8x64x64x3
+        update_target = np.zeros(((self.batch_size,) + self.state_size))
 
-        action = np.zeros((self.batch_size, self.trace_length)) # 32x4
+        action = np.zeros((self.batch_size, self.trace_length)) # 32x8
         reward = np.zeros((self.batch_size, self.trace_length))
 
         for i in range(self.batch_size):
@@ -157,8 +153,8 @@ class DoubleDQNAgent:
         """
         # Use all traces for training
         # Size (batch_size, trace_length, action_size)
-        target = self.model.predict(update_input) # 32x4x3
-        target_val = self.model.predict(update_target) # 32x4x3
+        target = self.model.predict(update_input) # 32x8x3
+        target_val = self.model.predict(update_target) # 32x8x3
 
         for i in range(self.batch_size):
             for j in range(self.trace_length):
@@ -190,26 +186,21 @@ class DoubleDQNAgent:
 if __name__ == "__main__":
 
     # Avoid Tensorflow eats up GPU memory
-    # Setup Tensorflow and Keras
-    config = tf.ConfigProto()
+    config = tf.ConfigProto(log_device_placement=True)
     config.gpu_options.allow_growth = True
     sess = tf.Session(config=config)
     K.set_session(sess)
 
-    # Initialize Vizdoom
     game = DoomGame()
-    # game.load_config("scenarios/defend_the_center.cfg") #+-#
-    # game.load_config("scenarios/defend_the_line.cfg")
-    game.load_config("scenarios/deathmatch.cfg")
+    game.load_config("scenarios/defend_the_center.cfg")
     game.set_sound_enabled(True)
     game.set_screen_resolution(ScreenResolution.RES_640X480)
-    game.set_window_visible(True)
+    game.set_window_visible(False)
     game.init()
 
     game.new_episode()
-    game_state = game.get_state() # Game state object
-    misc = game_state.game_variables  # [ KILLCOUNT, AMMO, HEALTH]
-
+    game_state = game.get_state()
+    misc = game_state.game_variables  # [KILLCOUNT, AMMO, HEALTH]
     prev_misc = misc
 
     action_size = game.get_available_buttons_size()
@@ -218,7 +209,7 @@ if __name__ == "__main__":
     img_channels = 3 # Color channel
     trace_length = 4 # Temporal Dimension
 
-    state_size = (trace_length, img_rows, img_cols, img_channels) # 4x64x64x3
+    state_size = (trace_length, img_rows, img_cols, img_channels)
     agent = DoubleDQNAgent(state_size, action_size, trace_length)
 
     agent.model = Networks.drqn(state_size, action_size, agent.learning_rate)
