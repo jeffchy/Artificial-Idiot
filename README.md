@@ -4,7 +4,7 @@ SIST CS181 project
 # Reinforcement Learning Materials
 
 ### Important Papers
-https://openreview.net/pdf?id=Hk3mPK5gg FAIR paper 2016 A3C+Curriculum <br>
+https://openreview.net/pdf?id=Hk3mPK5gg ICLR2017 FAIR paper 2016 A3C+Curriculum <br>
 https://arxiv.org/abs/1609.05521  Arnold CMU - DQRN + split network (Skill Learning?) <br>
 
 ### Curriculum Learning and Skill Learning
