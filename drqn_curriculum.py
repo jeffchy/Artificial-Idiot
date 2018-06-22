@@ -28,6 +28,8 @@ import tensorflow as tf
 
 from networks import Networks
 
+# from keras.backend import manual_variable_initialization 
+# manual_variable_initialization(True)
 
 def preprocessImg(img, size):
 
@@ -110,12 +112,12 @@ class DoubleDQNAgent:
         else:
   
             # Use all traces for RNN
-            #q = self.model.predict(state) # 1x8x3
-            #action_idx = np.argmax(q[0][-1])
+            q = self.model.predict(state) # 1x8x3
+            action_idx = np.argmax(q[0][-1])
 
             # Only use last trace for RNN
-            q = self.model.predict(state) # 1x3
-            action_idx = np.argmax(q)
+            # q = self.model.predict(state) # 1x3
+            # action_idx = np.argmax(q)
         return action_idx
 
     def shape_reward(self, r_t, misc, prev_misc, t):
@@ -150,7 +152,7 @@ class DoubleDQNAgent:
                 reward[i,j] = sample_traces[i][j][2]
                 update_target[i,j,:,:,:] = sample_traces[i][j][3]
 
-        """
+        
         # Use all traces for training
         # Size (batch_size, trace_length, action_size)
         target = self.model.predict(update_input) # 32x8x3
@@ -160,17 +162,17 @@ class DoubleDQNAgent:
             for j in range(self.trace_length):
                 a = np.argmax(target_val[i][j])
                 target[i][j][int(action[i][j])] = reward[i][j] + self.gamma * (target_val[i][j][a])
-        """
+    
 
         # Only use the last trace for training
-        target = self.model.predict(update_input) # 32x3
-        target_val = self.model.predict(update_target) # 32x3
+        # target = self.model.predict(update_input) # 32x3
+        # target_val = self.model.predict(update_target) # 32x3
 
-        for i in range(self.batch_size):
-            a = np.argmax(target_val[i])
-            target[i][int(action[i][-1])] = reward[i][-1] + self.gamma * (target_val[i][a])
+        # for i in range(self.batch_size):
+        #     a = np.argmax(target_val[i])
+        #     target[i][int(action[i][-1])] = reward[i][-1] + self.gamma * (target_val[i][a])
 
-        loss = self.model.train_on_batch(update_input, target)
+        # loss = self.model.train_on_batch(update_input, target)
 
         return np.max(target[-1,-1]), loss
 
@@ -190,12 +192,13 @@ if __name__ == "__main__":
     config.gpu_options.allow_growth = True
     sess = tf.Session(config=config)
     K.set_session(sess)
+    K.manual_variable_initialization(True)
 
     game = DoomGame()
     game.load_config("scenarios/defend_the_center.cfg")
     game.set_sound_enabled(True)
     game.set_screen_resolution(ScreenResolution.RES_640X480)
-    game.set_window_visible(False)
+    game.set_window_visible(True)
     game.init()
 
     game.new_episode()
@@ -213,18 +216,30 @@ if __name__ == "__main__":
     agent = DoubleDQNAgent(state_size, action_size, trace_length)
 
     agent.model = Networks.drqn(state_size, action_size, agent.learning_rate)
+    # tf.global_variables_initializer()
+    sess.run(tf.global_variables_initializer())
     agent.load_model('./models/drqn.h5')
     agent.target_model = Networks.drqn(state_size, action_size, agent.learning_rate)
+    agent.update_target_model()
+
 
     s_t = game_state.screen_buffer # 480 x 640
     s_t = preprocessImg(s_t, size=(img_rows, img_cols))
 
     is_terminated = game.is_episode_finished()
 
-    # Start training
-    epsilon = agent.initial_epsilon
+    train = False # train or test, set to false to test
+
+    # Start training / or testing
+    if train:
+        epsilon = agent.initial_epsilon
+        t = 0
+    else:
+        epsilon = 0
+        t = 1e10
+
     GAME = 0
-    t = 0
+    
     max_life = 0 # Maximum episode life (Proxy for agent performance)
     life = 0
     episode_buf = [] # Save entire episode
@@ -240,13 +255,15 @@ if __name__ == "__main__":
         a_t = np.zeros([action_size])
         
         # Epsilon Greedy
-        if len(episode_buf) > agent.trace_length:
+        if (len(episode_buf) > agent.trace_length):
             # 1x8x64x64x3
             state_series = np.array([trace[-1] for trace in episode_buf[-agent.trace_length:]])
             state_series = np.expand_dims(state_series, axis=0)
             action_idx  = agent.get_action(state_series)
         else:
             action_idx = random.randrange(agent.action_size)
+
+
         a_t[action_idx] = 1
 
         a_t = a_t.astype(int)
@@ -291,7 +308,7 @@ if __name__ == "__main__":
             agent.epsilon -= (agent.initial_epsilon - agent.final_epsilon) / agent.explore
 
         # Do the training
-        if t > agent.observe:
+        if t > agent.observe and train:
             Q_max, loss = agent.train_replay()
 
         # save the sample <s, a, r, s'> to episode buffer
@@ -305,7 +322,7 @@ if __name__ == "__main__":
         t += 1
 
         # save progress every 10000 iterations
-        if t % 10000 == 0:
+        if t % 10000 == 0 and train:
             print("Now we save model")
             agent.model.save_weights("models/drqn_curriculum.h5", overwrite=True)
 
@@ -315,8 +332,10 @@ if __name__ == "__main__":
             state = "observe"
         elif t > agent.observe and t <= agent.observe + agent.explore:
             state = "explore"
-        else:
+        elif train:
             state = "train"
+        else:
+            state = "test"
 
         if (is_terminated):
             print("TIME", t, "/ GAME", GAME, "/ STATE", state, \
