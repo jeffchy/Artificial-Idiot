@@ -196,9 +196,9 @@ if __name__ == "__main__":
 
     game = DoomGame()
     game.load_config("scenarios/defend_the_center.cfg")
-    game.set_sound_enabled(True)
+    game.set_sound_enabled(False)
     game.set_screen_resolution(ScreenResolution.RES_640X480)
-    game.set_window_visible(True)
+    game.set_window_visible(False)
     game.init()
 
     game.new_episode()
@@ -354,7 +354,7 @@ if __name__ == "__main__":
                 life_buffer, ammo_buffer, kills_buffer = [], [], [] 
 
                 # Write Rolling Statistics to file
-                with open("statistics/drqn_stats.txt", "w") as stats_file:
+                with open("statistics/drqn_stats1.txt", "w") as stats_file:
                     stats_file.write('Game: ' + str(GAME) + '\n')
                     stats_file.write('Max Score: ' + str(max_life) + '\n')
                     stats_file.write('mavg_score: ' + str(agent.mavg_score) + '\n')
