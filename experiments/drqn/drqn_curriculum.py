@@ -78,8 +78,8 @@ class DoubleDQNAgent:
         self.initial_epsilon = 1.0
         self.final_epsilon = 0.0001
         self.batch_size = 32
-        self.observe = 5000
-        self.explore = 50000
+        self.observe = 50000
+        self.explore = 500000
         self.frame_per_action = 4
         self.trace_length = trace_length
         self.update_target_freq = 3000
@@ -123,15 +123,38 @@ class DoubleDQNAgent:
         return action_idx
 
     def shape_reward(self, r_t, misc, prev_misc, t):
+        # reward shaping
         # Check any kill count
         if (misc[0] > prev_misc[0]):
             r_t = r_t + 1
 
-        if (misc[1] < prev_misc[1]): # Use ammo
-            r_t = r_t - 0.1
+        if (misc[1] < prev_misc[1] and (misc[3] == prev_misc[3])): # Use ammo changed
+
+            if misc[3] == 5 or misc[3] == 7:  # different items diffent reward
+                r_t = r_t - 0.4
+            elif misc[3] == 4 or misc[3] == 6:
+                pass
+            else:
+                r_t = r_t - 0.1
+
+        if (misc[1] > prev_misc[1] and (misc[3] == prev_misc[3])): # Collect ammo changed
+
+            if misc[3] == 5 or misc[3] == 7:  # different items diffent reward
+                r_t = r_t + 0.4
+            elif misc[3] == 4 or misc[3] == 6:
+                pass
+            else:
+                r_t = r_t + 0.1
+
+        if (misc[3] != prev_misc[3] and (misc[3] != 1)): 
+            # we cannot select weapon, so this means we pick up a new weapon!
+            r_t = r_t + 1
 
         if (misc[2] < prev_misc[2]): # Loss HEALTH
             r_t = r_t - 0.1
+
+        if (misc[2] > prev_misc[2] and prev_misc[2] < 100): # collect health pack
+            r_t = r_t + 0.5
 
         return r_t
 
@@ -204,6 +227,7 @@ if __name__ == "__main__":
     statfile = args.statfile    
     sound = args.sound
     visible = args.visible
+    slow = args.slow
 
     # Avoid Tensorflow eats up GPU memory
     config = tf.ConfigProto(log_device_placement=True)
@@ -270,7 +294,7 @@ if __name__ == "__main__":
     while not game.is_episode_finished():
 
         # this is for the visualization
-        if not train and visible:
+        if slow and visible:
             sleep(0.1)
 
         loss = 0

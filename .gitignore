@@ -1,7 +1,6 @@
 /models
 output*
-/__pycache
+/__pycache__
 *.pyc
 .DS_Store
-/acc156mac
-/experiments/*/__pycache
+/experiments/*/__pycache__

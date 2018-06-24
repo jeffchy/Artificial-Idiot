@@ -1,0 +1,6 @@
+Game: 20
+Max Score: 451
+mavg_score: [253.3, 259.8]
+var_score: [6774.210000000001, 13044.560000000001]
+mavg_ammo_left: [24.3, 21.7]
+mavg_kill_counts: [3.8, 3.6]
