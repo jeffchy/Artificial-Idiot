@@ -4,3 +4,4 @@ output*
 *.pyc
 .DS_Store
 /acc156mac
+/experiments/*/__pycache

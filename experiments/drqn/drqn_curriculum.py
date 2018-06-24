@@ -74,6 +74,7 @@ class DoubleDQNAgent:
             self.epsilon = 1.0
         else:
             self.epsilon = 0.0
+            
         self.initial_epsilon = 1.0
         self.final_epsilon = 0.0001
         self.batch_size = 32
@@ -190,8 +191,10 @@ if __name__ == "__main__":
     # set the environment variables
     CFG_PATH = '../../scenarios'
     MODEL_ROOT_PATH = '../../models'
+
     STAT_ROOT_PATH = '../../statistics'
-    LOAD_MODEL = MODEL_ROOT_PATH + '/drqn2/drqn_curriculum_model_21.0'
+    LOAD_MODEL_PATH = '../../result/1/'
+    LOAD_MODEL = LOAD_MODEL_PATH + 'drqn_curriculum_model_23.0'
 
     # parse the args
     args = parser.parse_args()
@@ -214,7 +217,6 @@ if __name__ == "__main__":
     game.set_screen_resolution(ScreenResolution.RES_640X480)
     game.set_window_visible(visible)
     game.init()
-
 
 
     game.new_episode()
@@ -267,6 +269,10 @@ if __name__ == "__main__":
 
     while not game.is_episode_finished():
 
+        # this is for the visualization
+        if not train and visible:
+            sleep(0.1)
+
         loss = 0
         Q_max = 0
         r_t = 0
@@ -288,6 +294,8 @@ if __name__ == "__main__":
         game.set_action(a_t.tolist())
         skiprate = agent.frame_per_action
         game.advance_action(skiprate)
+
+
 
         game_state = game.get_state()  # Observe again after we take the action
         is_terminated = game.is_episode_finished()
