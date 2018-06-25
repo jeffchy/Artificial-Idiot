@@ -218,7 +218,7 @@ class DoubleDQNAgent:
         .format(self.gamma, self.learning_rate, self.initial_epsilon, \
             self.final_epsilon, self.batch_size, self.observe, self.explore)
 
-        print(print_str)
+        return print_str
         
 
 
@@ -410,8 +410,6 @@ if __name__ == "__main__":
             # Save Agent's Performance Statistics
             if GAME % agent.stats_window_size == 0 and t > agent.observe: 
                 print("Update Rolling Statistics")
-                print(args)
-                agent.print_params()
                 agent.mavg_score.append(np.mean(np.array(life_buffer)))
                 agent.var_score.append(np.var(np.array(life_buffer)))
                 agent.mavg_ammo_left.append(np.mean(np.array(ammo_buffer)))
@@ -422,6 +420,8 @@ if __name__ == "__main__":
 
                 # Write Rolling Statistics to file
                 with open("{}/{}.txt".format(STAT_ROOT_PATH ,statfile), "w") as stats_file:
+                	stats_file.write('HyperParams:' + str(agent.print_params()) + '\n')
+                	stats_file.write('Args:' + str(args) + '\n')
                     stats_file.write('Game: ' + str(GAME) + '\n')
                     stats_file.write('Max Score: ' + str(max_life) + '\n')
                     stats_file.write('mavg_score: ' + str(agent.mavg_score) + '\n')
