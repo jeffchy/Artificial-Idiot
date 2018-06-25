@@ -269,8 +269,6 @@ if __name__ == "__main__":
 
     state_size = (trace_length, img_rows, img_cols, img_channels)
     agent = DoubleDQNAgent(state_size, action_size, trace_length, train)
-    agent.print_params()
-    exit(0)
     agent.model = Networks.drqn(state_size, action_size, agent.learning_rate)
     # sess.run(tf.global_variables_initializer())
     if not train:
