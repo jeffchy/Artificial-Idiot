@@ -4,3 +4,4 @@ output*
 *.pyc
 .DS_Store
 /experiments/*/__pycache__
+*.ini
