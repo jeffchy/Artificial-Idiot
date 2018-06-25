@@ -23,4 +23,4 @@ parser.add_argument('--sound', dest='sound', action='store_true')
 parser.set_defaults(sound=False)
 
 parser.add_argument('--slow', dest='slow', action='store_true')
-parser.set_defaults(sound=False)
+parser.set_defaults(slow=False)
