@@ -239,8 +239,8 @@ if __name__ == "__main__":
     MODEL_ROOT_PATH = '../../models'
 
     STAT_ROOT_PATH = '../../statistics'
-    LOAD_MODEL_PATH = '../../result/1/'
-    LOAD_MODEL = LOAD_MODEL_PATH + 'drqn_curriculum_model_23.0'
+    LOAD_MODEL_PATH = '../../models/drqn2/'
+    LOAD_MODEL = LOAD_MODEL_PATH + 'drqn_curriculum_model_13.0'
 
     # parse the args
     args = parser.parse_args()
