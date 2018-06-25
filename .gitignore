@@ -3,5 +3,7 @@ output*
 /__pycache__
 *.pyc
 .DS_Store
+/experiments/*/_vizdoom.ini
 /experiments/*/__pycache__
 _vizdoom.ini
+/statistics

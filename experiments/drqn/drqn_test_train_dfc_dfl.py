@@ -78,12 +78,12 @@ class DoubleDQNAgent:
         self.initial_epsilon = 1.0
         self.final_epsilon = 0.0001
         self.batch_size = 32
-        self.observe = 50000
-        self.explore = 150000
+        self.observe = 5000
+        self.explore = 50000
         self.frame_per_action = 4
         self.trace_length = trace_length
         self.update_target_freq = 3000
-        self.timestep_per_train = 5 # Number of timesteps between training interval
+        self.timestep_per_train = 5 # # Number of timesteps between training interval
 
         # Create replay memory
         self.memory = ReplayMemory()
@@ -122,45 +122,56 @@ class DoubleDQNAgent:
         return action_idx
 
     def shape_reward(self, r_t, misc, prev_misc, t):
-        # reward shaping
         # Check any kill count
-        # {KILLCOUNT SELECTED_AMMO HEATH SELECTED_WEAPON}
         if (misc[0] > prev_misc[0]):
             r_t = r_t + 1
 
-        if (misc[1] < prev_misc[1] and (misc[3] == prev_misc[3])): # Use ammo changed
-
-            if misc[3] == 5 or misc[3] == 7:  # different items diffent reward
-                r_t = r_t - 0.3
-            elif misc[3] == 4 or misc[3] == 6:
-                pass
-            else:
-                r_t = r_t - 0.1
-
-        if (misc[1] > prev_misc[1] and (misc[3] == prev_misc[3])): # Collect ammo changed
-
-            if misc[3] == 5 or misc[3] == 7:  # different items diffent reward
-                r_t = r_t + 0.3
-            elif misc[3] == 4 or misc[3] == 6:
-                pass
-            else:
-                r_t = r_t + 0.1
-
-        if (misc[3] != prev_misc[3] and (misc[3] != 1)): 
-            # we cannot select weapon, so this means we pick up a new weapon!
-            r_t = r_t + 1
-
-        if (misc[3] == 1):
-            # no punch !!!
-            r_t = r_t - 1
+        if (misc[1] < prev_misc[1]): # Use ammo
+            r_t = r_t - 0.1
 
         if (misc[2] < prev_misc[2]): # Loss HEALTH
             r_t = r_t - 0.1
 
-        if (misc[2] > prev_misc[2] and prev_misc[2] < 100): # collect health pack
-            r_t = r_t + 0.5
-
         return r_t
+        # reward shaping
+        # Check any kill count
+        # {KILLCOUNT SELECTED_AMMO HEATH SELECTED_WEAPON}
+        # if (misc[0] > prev_misc[0]):
+        #     r_t = r_t + 1
+
+        # if (misc[1] < prev_misc[1] and (misc[3] == prev_misc[3])): # Use ammo changed
+
+        #     if misc[3] == 5 or misc[3] == 7:  # different items diffent reward
+        #         r_t = r_t - 0.3
+        #     elif misc[3] == 4 or misc[3] == 6:
+        #         pass
+        #     else:
+        #         r_t = r_t - 0.1
+
+        # if (misc[1] > prev_misc[1] and (misc[3] == prev_misc[3])): # Collect ammo changed
+
+        #     if misc[3] == 5 or misc[3] == 7:  # different items diffent reward
+        #         r_t = r_t + 0.3
+        #     elif misc[3] == 4 or misc[3] == 6:
+        #         pass
+        #     else:
+        #         r_t = r_t + 0.1
+
+        # if (misc[3] != prev_misc[3] and (misc[3] != 1)): 
+        #     # we cannot select weapon, so this means we pick up a new weapon!
+        #     r_t = r_t + 1
+
+        # if (misc[3] == 1):
+        #     # no punch !!!
+        #     r_t = r_t - 1
+
+        # if (misc[2] < prev_misc[2]): # Loss HEALTH
+        #     r_t = r_t - 0.1
+
+        # if (misc[2] > prev_misc[2] and prev_misc[2] < 100): # collect health pack
+        #     r_t = r_t + 0.5
+
+        # return r_t
 
     # pick samples randomly from replay memory (with batch_size)
     def train_replay(self):
@@ -278,6 +289,7 @@ if __name__ == "__main__":
         # json_file.close()
         # agent.model = model_from_json(loaded_model_json)
         agent.load_model(LOAD_MODEL + '.h5')
+
     # target initialize
     agent.target_model = Networks.drqn(state_size, action_size, agent.learning_rate)
     if load or (not train):
