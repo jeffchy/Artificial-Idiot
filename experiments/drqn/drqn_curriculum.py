@@ -79,7 +79,7 @@ class DoubleDQNAgent:
         self.final_epsilon = 0.0001
         self.batch_size = 32
         self.observe = 50000
-        self.explore = 500000
+        self.explore = 150000
         self.frame_per_action = 4
         self.trace_length = trace_length
         self.update_target_freq = 3000
@@ -91,7 +91,6 @@ class DoubleDQNAgent:
         # Create main model and target model
         self.model = None
         self.target_model = None
-
         # Performance Statistics
         self.stats_window_size= 10 # window size for computing rolling statistics
         self.mavg_score = [] # Moving Average of Survival Time
@@ -125,13 +124,14 @@ class DoubleDQNAgent:
     def shape_reward(self, r_t, misc, prev_misc, t):
         # reward shaping
         # Check any kill count
+        # {KILLCOUNT SELECTED_AMMO HEATH SELECTED_WEAPON}
         if (misc[0] > prev_misc[0]):
             r_t = r_t + 1
 
         if (misc[1] < prev_misc[1] and (misc[3] == prev_misc[3])): # Use ammo changed
 
             if misc[3] == 5 or misc[3] == 7:  # different items diffent reward
-                r_t = r_t - 0.4
+                r_t = r_t - 0.3
             elif misc[3] == 4 or misc[3] == 6:
                 pass
             else:
@@ -140,7 +140,7 @@ class DoubleDQNAgent:
         if (misc[1] > prev_misc[1] and (misc[3] == prev_misc[3])): # Collect ammo changed
 
             if misc[3] == 5 or misc[3] == 7:  # different items diffent reward
-                r_t = r_t + 0.4
+                r_t = r_t + 0.3
             elif misc[3] == 4 or misc[3] == 6:
                 pass
             else:
@@ -149,6 +149,10 @@ class DoubleDQNAgent:
         if (misc[3] != prev_misc[3] and (misc[3] != 1)): 
             # we cannot select weapon, so this means we pick up a new weapon!
             r_t = r_t + 1
+
+        if (misc[3] == 1):
+            # no punch !!!
+            r_t = r_t - 1
 
         if (misc[2] < prev_misc[2]): # Loss HEALTH
             r_t = r_t - 0.1
@@ -209,6 +213,14 @@ class DoubleDQNAgent:
     def save_model(self, name):
         self.model.save_weights(name)
 
+    def print_params(self):
+        print_str = "Hyperparams >> gamma: {}, learning_rate: {}, initial_epsilon: {}, final_epsilon: {}, batch_size: {}, observe: {}, explore: {}"\
+        .format(self.gamma, self.learning_rate, self.initial_epsilon, \
+            self.final_epsilon, self.batch_size, self.observe, self.explore)
+
+        print(print_str)
+        
+
 
 if __name__ == "__main__":
     # set the environment variables
@@ -257,7 +269,8 @@ if __name__ == "__main__":
 
     state_size = (trace_length, img_rows, img_cols, img_channels)
     agent = DoubleDQNAgent(state_size, action_size, trace_length, train)
-
+    agent.print_params()
+    exit(0)
     agent.model = Networks.drqn(state_size, action_size, agent.learning_rate)
     # sess.run(tf.global_variables_initializer())
     if not train:
@@ -399,6 +412,8 @@ if __name__ == "__main__":
             # Save Agent's Performance Statistics
             if GAME % agent.stats_window_size == 0 and t > agent.observe: 
                 print("Update Rolling Statistics")
+                print(args)
+                agent.print_params()
                 agent.mavg_score.append(np.mean(np.array(life_buffer)))
                 agent.var_score.append(np.var(np.array(life_buffer)))
                 agent.mavg_ammo_left.append(np.mean(np.array(ammo_buffer)))
