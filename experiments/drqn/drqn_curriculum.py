@@ -97,8 +97,13 @@ class DoubleDQNAgent:
         self.var_score = [] # Variance of Survival Time
         self.mavg_ammo_left = [] # Moving Average of Ammo used
         self.mavg_kill_counts = [] # Moving Average of Kill Counts
-
+        self.mavg_collect_health = [] # Moving Average of collect health
+        self.mavg_collect_weapon = []
+        self.mavg_lose_health = []
+        self.mavg_use_ammo = []
+        self.mavg_collect_ammo = []
     def update_target_model(self):
+
         """
         After some time interval update the target model to be same with model
         """
@@ -125,8 +130,14 @@ class DoubleDQNAgent:
         # reward shaping
         # Check any kill count
         # {KILLCOUNT SELECTED_AMMO HEATH SELECTED_WEAPON}
+        collect_health = 0
+        collect_weapon = 0
+        lose_health = 0
+        use_ammo = 0
+        collect_ammo = 0
+
         if (misc[0] > prev_misc[0]):
-            r_t = r_t + 1
+            r_t = r_t + 1.8
 
         if (misc[1] < prev_misc[1] and (misc[3] == prev_misc[3])): # Use ammo changed
 
@@ -137,30 +148,43 @@ class DoubleDQNAgent:
             else:
                 r_t = r_t - 0.1
 
+            use_ammo = abs(prev_misc[1] - misc[1])
+
         if (misc[1] > prev_misc[1] and (misc[3] == prev_misc[3])): # Collect ammo changed
 
             if misc[3] == 5 or misc[3] == 7:  # different items diffent reward
-                r_t = r_t + 0.3
+                r_t = r_t + 0.2
+
             elif misc[3] == 4 or misc[3] == 6:
                 pass
             else:
                 r_t = r_t + 0.1
 
+            collect_ammo = abs(prev_misc[1] - misc[1])
+
         if (misc[3] != prev_misc[3] and (misc[3] != 1)): 
             # we cannot select weapon, so this means we pick up a new weapon!
-            r_t = r_t + 1
+            r_t = r_t + 0.3
+
+            collect_weapon += 1
 
         if (misc[3] == 1):
             # no punch !!!
             r_t = r_t - 1
 
         if (misc[2] < prev_misc[2]): # Loss HEALTH
-            r_t = r_t - 0.1
+
+            r_t = r_t - 0.3
+
+            lose_health = abs(misc[2] - prev_misc[2])
 
         if (misc[2] > prev_misc[2] and prev_misc[2] < 100): # collect health pack
-            r_t = r_t + 0.5
 
-        return r_t
+            r_t = r_t + 0.3
+
+            collect_health = abs(misc[2] - prev_misc[2])
+
+        return r_t, collect_health, collect_weapon, lose_health, use_ammo, collect_ammo
 
     # pick samples randomly from replay memory (with batch_size)
     def train_replay(self):
@@ -298,10 +322,18 @@ if __name__ == "__main__":
     
     max_life = 0 # Maximum episode life (Proxy for agent performance)
     life = 0
+    
+    # add more statistics
+    collect_health_sum = 0
+    collect_weapon_sum = 0
+    lose_health_sum = 0
+    use_ammo_sum = 0
+    collect_ammo_sum = 0
+    
     episode_buf = [] # Save entire episode
 
     # Buffer to compute rolling statistics 
-    life_buffer, ammo_buffer, kills_buffer = [], [], [] 
+    life_buffer, ammo_buffer, kills_buffer, collect_health_buffer, collect_weapon_buffer, lose_health_buffer, use_ammo_buffer, collect_ammo_buffer = [], [], [], [], [], [] ,[], []
 
     while not game.is_episode_finished():
 
@@ -331,18 +363,22 @@ if __name__ == "__main__":
         skiprate = agent.frame_per_action
         game.advance_action(skiprate)
 
-
-
         game_state = game.get_state()  # Observe again after we take the action
         is_terminated = game.is_episode_finished()
 
-        r_t = game.get_last_reward()  #each frame we get reward of 0.1, so 4 frames will be 0.4
+        r_t= game.get_last_reward()  #each frame we get reward of 0.1, so 4 frames will be 0.4
+
 
         if (is_terminated):
             if (life > max_life):
                 max_life = life
             GAME += 1
             life_buffer.append(life)
+            collect_health_buffer.append(collect_health_sum)
+            collect_ammo_buffer.append(collect_ammo_sum)
+            collect_weapon_buffer.append(collect_weapon_sum)
+            lose_health_buffer.append(lose_health_sum)
+            use_ammo_buffer.append(use_ammo_sum)
             ammo_buffer.append(misc[1])
             kills_buffer.append(misc[0])
             print ("Episode Finish ", misc)
@@ -355,12 +391,23 @@ if __name__ == "__main__":
         misc = game_state.game_variables
         s_t1 = preprocessImg(s_t1, size=(img_rows, img_cols))
 
-        r_t = agent.shape_reward(r_t, misc, prev_misc, t)
+        r_t, collect_health, collect_weapon, lose_health, use_ammo, collect_ammo = agent.shape_reward(r_t, misc, prev_misc, t)
 
         if (is_terminated):
+            collect_health_sum = 0
+            collect_weapon_sum = 0
+            lose_health_sum = 0
+            use_ammo_sum = 0
+            collect_ammo_sum = 0
             life = 0
         else:
             life += 1
+            collect_health_sum += collect_health
+            collect_weapon_sum += collect_weapon
+            lose_health_sum += lose_health
+            use_ammo_sum += use_ammo
+            collect_ammo_sum += collect_ammo
+
 
         #update the cache
         prev_misc = misc
@@ -409,15 +456,19 @@ if __name__ == "__main__":
                   "/ Q_MAX %e" % np.max(Q_max), "/ LIFE", max_life, "/ LOSS", loss)
 
             # Save Agent's Performance Statistics
-            if GAME % agent.stats_window_size == 0 and t > agent.observe: 
+            if GAME % agent.stats_window_size == 0 and t > 0: 
                 print("Update Rolling Statistics")
                 agent.mavg_score.append(np.mean(np.array(life_buffer)))
                 agent.var_score.append(np.var(np.array(life_buffer)))
                 agent.mavg_ammo_left.append(np.mean(np.array(ammo_buffer)))
                 agent.mavg_kill_counts.append(np.mean(np.array(kills_buffer)))
-
+                agent.mavg_collect_health.append(np.mean(np.array(collect_health_buffer))) # Moving Average of collect health
+                agent.mavg_collect_weapon.append(np.mean(np.array(collect_weapon_buffer)))
+                agent.mavg_lose_health.append(np.mean(np.array(lose_health_buffer)))
+                agent.mavg_use_ammo.append(np.mean(np.array(use_ammo_buffer)))
+                agent.mavg_collect_ammo.append(np.mean(np.array(collect_ammo_buffer)))
                 # Reset rolling stats buffer
-                life_buffer, ammo_buffer, kills_buffer = [], [], [] 
+                life_buffer, ammo_buffer, kills_buffer, collect_health_buffer, collect_weapon_buffer, lose_health_buffer, use_ammo_buffer, collect_ammo_buffer = [], [], [], [], [], [] ,[], []
 
                 # Write Rolling Statistics to file
                 with open("{}/{}.txt".format(STAT_ROOT_PATH ,statfile), "w") as stats_file:
@@ -429,4 +480,9 @@ if __name__ == "__main__":
                     stats_file.write('var_score: ' + str(agent.var_score) + '\n')
                     stats_file.write('mavg_ammo_left: ' + str(agent.mavg_ammo_left) + '\n')
                     stats_file.write('mavg_kill_counts: ' + str(agent.mavg_kill_counts) + '\n')
+                    stats_file.write('mavg_collect_health: ' + str(agent.mavg_collect_health) + '\n')
+                    stats_file.write('mavg_collect_weapon: ' + str(agent.mavg_collect_weapon) + '\n')
+                    stats_file.write('mavg_lose_health: ' + str(agent.mavg_lose_health) + '\n')
+                    stats_file.write('mavg_use_ammo: ' + str(agent.mavg_use_ammo) + '\n')
+                    stats_file.write('mavg_collect_ammo: ' + str(agent.mavg_collect_ammo) + '\n')
 
