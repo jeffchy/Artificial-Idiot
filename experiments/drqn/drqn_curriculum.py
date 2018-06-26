@@ -180,7 +180,7 @@ class DoubleDQNAgent:
 
         if (misc[2] > prev_misc[2] and prev_misc[2] < 100): # collect health pack
 
-            r_t = r_t + 0.3
+            r_t = r_t + 0.2
 
             collect_health = abs(misc[2] - prev_misc[2])
 
