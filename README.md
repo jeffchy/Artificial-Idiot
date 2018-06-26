@@ -13,6 +13,9 @@ https://arxiv.org/pdf/1705.06366.pdf BAIR paper for generating learning goals us
 http://bair.berkeley.edu/blog/2017/12/20/reverse-curriculum/ Good blogs from BAIR <br>
 https://www.ijcai.org/proceedings/2017/0757.pdf  IJCAI short paper <br>
 
+### How to solve sparse reward and guide leaerning?
+https://nlp.stanford.edu/pubs/liu2018reinforcement.pdf
+
 ### Reference Codes
 https://github.com/glample/Arnold  Pytorch + Arnold <br>
 https://github.com/mwydmuch/ViZDoom/blob/master/doc/Types.md ViZdoom APIdoc - Python <br>
