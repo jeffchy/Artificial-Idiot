@@ -25,7 +25,9 @@ https://github.com/flyyufelix/VizDoom-Keras-RL Tensorflow + Keras <br>
 ### Env
 tf-gpu==1.4.0, keras==2.1.6, scikit-image
 suggest to use anaconda, create new env with pip
-and use pip install.
-in experiments/drqn folder
-usage:
-python drqn_curriculum.py -h
+and use pip install. <br>
+
+in experiments/drqn folder <br>
+
+usage: <br>
+`python drqn_curriculum.py -h`
