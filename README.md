@@ -21,3 +21,11 @@ https://github.com/glample/Arnold  Pytorch + Arnold <br>
 https://github.com/mwydmuch/ViZDoom/blob/master/doc/Types.md ViZdoom APIdoc - Python <br>
 https://github.com/flyyufelix/VizDoom-Keras-RL Tensorflow + Keras <br>
 
+## Usage
+### Env
+tf-gpu==1.4.0, keras==2.1.6, scikit-image
+suggest to use anaconda, create new env with pip
+and use pip install.
+in experiments/drqn folder
+usage:
+python drqn_curriculum.py -h
